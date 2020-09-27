@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const FORWARD = 1;
 const BACKSPACE = -1;
@@ -36,6 +36,7 @@ const TypeMe = ({
   const [animationEnded, setAnimationEnded] = useState(false);
   const [typedString, setTypedString] = useState('');
   const [newTypedString, setNewTypedString] = useState('');
+  const shouldContinue = useRef(false);
   const typingInterval = (1000 * 60) / (typingSpeed * 5); // ms
   const deleteInterval = (1000 * 60) / (deleteSpeed * 5); // ms
 
@@ -65,6 +66,7 @@ const TypeMe = ({
       case 'Delete':
         let delay = false;
         let newDeleteChar = 0;
+        if (!shouldContinue.current) return;
         if (deleteChar === 0) {
           if (item.props.characters === 0) {
             newDeleteChar = newTypedString.length;
@@ -100,7 +102,7 @@ const TypeMe = ({
       if (elapsed === 0) {
         elapsed = time;
       }
-      if (time >= elapsed + interval) {
+      if (time >= elapsed + interval && shouldContinue.current) {
         elapsed = time;
         const split = nts.split('•');
         setTypedString(
@@ -120,6 +122,7 @@ const TypeMe = ({
   };
 
   useEffect(() => {
+    shouldContinue.current = true;
     if (window && !window._TYPEME) {
       let styleSheet = document.styleSheets[0];
       if (!styleSheet) {
@@ -140,10 +143,13 @@ const TypeMe = ({
       });
       window._TYPEME = true;
     }
+    return () => {
+      shouldContinue.current = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (startAnimation) {
+    if (startAnimation && shouldContinue.current) {
       let items = [];
       if (strings && Array.isArray(strings)) {
         items = strings;
